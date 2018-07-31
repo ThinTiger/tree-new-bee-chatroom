@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
+import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -14,31 +15,39 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @date:2018/7/31 16:15
  */
 
-@ServerEndpoint("/chatroom-ws")
+@ServerEndpoint("/chatroom-ws/{roomId}/{userId}")
 @Component
 public class ChatRoomWebSocket {
 
     private static CopyOnWriteArrayList<ChatRoomWebSocket> webSockets = new CopyOnWriteArrayList<>();
     private Logger logger = LoggerFactory.getLogger(getClass());
     private Session session;
+    private int roomId;
+    private int userId;
+
+    public static synchronized int getOnlineCount() {
+        return webSockets.size();
+    }
 
     @OnOpen
-    public void onOpen(Session session) {
+    public void onOpen(@PathParam("roomId") int roomId, @PathParam("userId") int userId, Session session) {
         this.session = session;
+        this.roomId = roomId;
+        this.userId = userId;
         webSockets.add(this);
-        logger.info("有新用戶加入..");
+        logger.info("用戶{}進入房間{}", userId, roomId);
 
     }
 
     @OnClose
     public void onClose() {
         webSockets.remove(this);
-        logger.info("有用戶退出..");
+        logger.info("用戶{}退出房間{}", userId, roomId);
     }
 
     @OnMessage
     public void onMessage(String message) {
-        logger.info("來自客戶端的消息:{}", message);
+        logger.info("用戶{}在房間{}發送消息：{}", userId, roomId, message);
         for (ChatRoomWebSocket webSocket : webSockets) {
             webSocket.sendMessage(message);
         }
@@ -55,9 +64,5 @@ public class ChatRoomWebSocket {
     @OnError
     public void onError(Session session, Throwable throwable) {
         logger.error("異常了..", throwable);
-    }
-
-    public int getOnlineCount() {
-        return webSockets.size();
     }
 }
