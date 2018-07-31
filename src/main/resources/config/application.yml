@@ -1,0 +1,5 @@
+server.port: 1888
+spring:
+  application:
+    name: tree-new-bee-chatroom
+logging.config: classpath:spring/logback.xml
